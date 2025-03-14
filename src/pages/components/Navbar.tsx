@@ -102,41 +102,14 @@ export default function Navbar() {
                         Home
                       </a>
                     </SheetClose>
-                    <Accordion type="single" collapsible>
-                      <AccordionItem value="catalog">
-                        <AccordionTrigger className="px-2">
-                          Catalog
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="flex flex-col space-y-2 ml-4">
-                            <SheetClose asChild>
-                              <a
-                                href="/catalog"
-                                className="flex items-center px-2 py-2 hover:bg-gray-100 rounded-lg"
-                              >
-                                <Apple className="mr-2 w-4 h-4" /> iPhone
-                              </a>
-                            </SheetClose>
-                            <SheetClose asChild>
-                              <a
-                                href="/catalog"
-                                className="flex items-center px-2 py-2 hover:bg-gray-100 rounded-lg"
-                              >
-                                <Laptop className="mr-2 w-4 h-4" /> MacBook
-                              </a>
-                            </SheetClose>
-                            <SheetClose asChild>
-                              <a
-                                href="/catalog"
-                                className="flex items-center px-2 py-2 hover:bg-gray-100 rounded-lg"
-                              >
-                                <Tablet className="mr-2 w-4 h-4" /> iPad
-                              </a>
-                            </SheetClose>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
+                    <SheetClose asChild>
+                      <a
+                        href="/catalog"
+                        className="px-2 py-2 hover:bg-gray-100 rounded-lg"
+                      >
+                        Catalog
+                      </a>
+                    </SheetClose>
                     <SheetClose asChild>
                       <a
                         href="/contact"
@@ -180,33 +153,7 @@ export default function Navbar() {
             {/* Left navigation links */}
             <div className="flex items-center space-x-8">
               <NavLink href="/">Home</NavLink>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="flex items-center space-x-1"
-                  >
-                    Catalog <ChevronDown className="w-4 h-4 ml-1" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem className="flex items-center">
-                    <a href="/catalog" className="flex row">
-                      <Apple className="mr-2 w-4 h-4" /> iPhone
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-center">
-                    <a href="/catalog" className="flex row">
-                      <Laptop className="mr-2 w-4 h-4" /> MacBook
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-center">
-                    <a href="/catalog" className="flex row">
-                      <Tablet className="mr-2 w-4 h-4" /> iPad
-                    </a>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <NavLink href="/catalog">Catalog</NavLink>
 
               {/* Centered Search Form */}
               <form

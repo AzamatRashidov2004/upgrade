@@ -1,11 +1,12 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CircleCheck, Recycle, Shield, Sparkles } from "lucide-react";
 import { ProductSwiper } from "./components/ProductSwiper";
 
 const HomePage = () => {
+
+
   return (
     <div className="min-h-screen bg-gray-50 mt-20">
       {/* Hero Section with creative background */}

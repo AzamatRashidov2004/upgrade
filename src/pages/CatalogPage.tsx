@@ -23,34 +23,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Filter, SortDesc, Search } from "lucide-react";
+import { Filter, SortDesc, Search, Loader2 } from "lucide-react";
 import ProductCardGrid from "./components/ProductCardGrid";
 import PromoBanner from "./components/PromoBanner";
 import { useSearch } from "@/context/SearchProvider";
+import { productApi, type Product, type ProductFilter } from "@/api/serverCalls";
 
-interface Product {
-  id: number;
-  name: string;
-  type: string;
-  color: string;
-  storage: string;
-  condition: string;
-  price: string;
-  colorHex: string;
-  image: string;
-  warranty?: string;
-  shippingInfo?: string;
-}
+// Number of products to load per page
+const PRODUCTS_PER_PAGE = 12;
 
 const CatalogPage = () => {
   const { searchQuery, setSearchQuery } = useSearch();
-  const [priceRange, setPriceRange] = useState([100000]);
+  
+  // State for filters
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedStorages, setSelectedStorages] = useState<string[]>([]);
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
-  const [selectedProductTypes, setSelectedProductTypes] = useState<string[]>(
-    []
-  );
+  const [selectedProductTypes, setSelectedProductTypes] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState<number[]>([100000]);
+  const [sortOrder, setSortOrder] = useState<string>("price-asc");
+  
+  // State for products and pagination
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalProducts, setTotalProducts] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
   const [isSmallScreen, setIsSmallScreen] = useState<boolean>(false);
 
   // Check screen size on component mount and when window resizes
@@ -69,131 +68,112 @@ const CatalogPage = () => {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  // Mock data with product types added
-  const products: Product[] = [
-    {
-      id: 1,
-      name: "iPhone 15 Pro Max",
-      type: "iPhone",
-      color: "Titanium Black",
-      storage: "1TB",
-      condition: "New",
-      price: "34 990 Kč",
-      colorHex: "#2D2D2D",
-      image: "/iphone15.jpg",
-      warranty: "2 years",
-      shippingInfo: "Free shipping",
-    },
-    {
-      id: 2,
-      name: "iPhone 14 Pro",
-      type: "iPhone",
-      color: "Space Black",
-      storage: "128 GB",
-      condition: "Excellent",
-      price: "24 490 Kč",
-      colorHex: "#000000",
-      image: "https://example.com/iphone-black.jpg",
-    },
-    {
-      id: 3,
-      name: 'MacBook Pro 16"',
-      type: "MacBook",
-      color: "Space Gray",
-      storage: "1 TB",
-      condition: "New",
-      price: "64 990 Kč",
-      colorHex: "#1E1E1E",
-      image: "/macbook-pro.jpg",
-    },
-    {
-      id: 4,
-      name: 'iPad Pro 12.9"',
-      type: "iPad",
-      color: "Silver",
-      storage: "256 GB",
-      condition: "New",
-      price: "29 990 Kč",
-      colorHex: "#E3E3E3",
-      image: "/ipad-pro.jpg",
-    },
-    {
-      id: 5,
-      name: "MacBook Air",
-      type: "MacBook",
-      color: "Midnight",
-      storage: "512 GB",
-      condition: "Excellent",
-      price: "27 490 Kč",
-      colorHex: "#1D1D1F",
-      image: "/macbook-air.jpg",
-    },
-    {
-      id: 6,
-      name: "iPad Air",
-      type: "iPad",
-      color: "Blue",
-      storage: "64 GB",
-      condition: "Good",
-      price: "14 990 Kč",
-      colorHex: "#0071E3",
-      image: "/ipad-air.jpg",
-    },
-    {
-      id: 7,
-      name: "iPhone 13 Mini",
-      type: "iPhone",
-      color: "Pink",
-      storage: "128 GB",
-      condition: "Good",
-      price: "15 490 Kč",
-      colorHex: "#FFC0CB",
-      image: "/iphone-mini.jpg",
-    },
-    // ... other products
-  ];
+  // Function to fetch products with current filters
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  // Get unique product types for the filter
-  const productTypes = Array.from(
-    new Set(products.map((product) => product.type))
-  );
+      // Build filter object from state
+      const filter: ProductFilter = {
+        page: currentPage,
+        limit: PRODUCTS_PER_PAGE
+      };
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.type.toLowerCase().includes(searchQuery.toLowerCase());
+      // Add device type filter (map to the API's device_type parameter)
+      if (selectedProductTypes.length === 1) {
+        filter.device_type = selectedProductTypes[0] as 'iPhone' | 'MacBook' | 'iPad';
+      }
 
-    const matchesColor =
-      selectedColors.length === 0 || selectedColors.includes(product.color);
+      // Add other filters
+      if (selectedColors.length === 1) {
+        filter.color = selectedColors[0];
+      }
 
-    const matchesStorage =
-      selectedStorages.length === 0 ||
-      selectedStorages.includes(product.storage);
+      if (selectedStorages.length === 1) {
+        filter.storage = selectedStorages[0];
+      }
 
-    const matchesCondition =
-      selectedConditions.length === 0 ||
-      selectedConditions.includes(product.condition);
+      if (selectedConditions.length === 1) {
+        filter.condition = selectedConditions[0];
+      }
 
-    const matchesPrice =
-      parseInt(product.price.replace(/\D/g, "")) <= priceRange[0];
+      // Add price range
+      filter.maxPrice = priceRange[0];
 
-    const matchesProductType =
-      selectedProductTypes.length === 0 ||
-      selectedProductTypes.includes(product.type);
+      // Add search query as a model filter
+      if (searchQuery) {
+        filter.model = searchQuery;
+      }
 
-    return (
-      matchesSearch &&
-      matchesColor &&
-      matchesStorage &&
-      matchesCondition &&
-      matchesPrice &&
-      matchesProductType
-    );
-  });
+      // Fetch products
+      const result = await productApi.getProducts(filter);
+      const response = result.data; 
+      // Sort products if needed (in case server doesn't support sorting)
+      let sortedProducts = [...response];
+      if (sortOrder === "price-asc") {
+        sortedProducts.sort((a, b) => a.price - b.price);
+      } else if (sortOrder === "price-desc") {
+        sortedProducts.sort((a, b) => b.price - a.price);
+      } 
+      // Note: "newest" sorting would require a timestamp field that I don't see in your schema
 
+      setProducts(sortedProducts);
+      setTotalProducts(result.total); // This should ideally come from the API response
+      setTotalPages(Math.ceil(result.total / PRODUCTS_PER_PAGE)); // This should ideally be calculated from total count
+    } catch (err) {
+      setError("Failed to load products. Please try again.");
+      console.error("Error fetching products:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch products on initial load and when filters change
+  useEffect(() => {
+    fetchProducts();
+  }, [
+    currentPage,
+    selectedColors,
+    selectedStorages,
+    selectedConditions,
+    selectedProductTypes,
+    priceRange,
+    sortOrder,
+    searchQuery
+  ]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    selectedColors,
+    selectedStorages,
+    selectedConditions,
+    selectedProductTypes,
+    priceRange,
+    searchQuery
+  ]);
+
+  // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
+  };
+
+  // Handle changing sort order
+  const handleSortChange = (value: string) => {
+    setSortOrder(value);
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setSelectedProductTypes([]);
+    setSelectedColors([]);
+    setSelectedStorages([]);
+    setSelectedConditions([]);
+    setPriceRange([100000]);
+    setCurrentPage(1);
   };
 
   const FiltersContent = () => (
@@ -203,7 +183,7 @@ const CatalogPage = () => {
         <AccordionItem value="productType">
           <AccordionTrigger>Product Type</AccordionTrigger>
           <AccordionContent className="space-y-2">
-            {productTypes.map((type) => (
+            {["iPhone", "MacBook", "iPad"].map((type) => (
               <div key={type} className="flex items-center gap-2">
                 <Checkbox
                   id={`${type}-type`}
@@ -234,64 +214,6 @@ const CatalogPage = () => {
           </AccordionContent>
         </AccordionItem>
 
-        {/* Color Filter */}
-        <AccordionItem value="color">
-          <AccordionTrigger>Color</AccordionTrigger>
-          <AccordionContent className="space-y-2">
-            {[
-              "Space Black",
-              "Silver",
-              "Gold",
-              "Deep Purple",
-              "Space Gray",
-              "Midnight",
-              "Blue",
-              "Pink",
-              "Titanium Black",
-            ].map((color) => (
-              <div key={color} className="flex items-center gap-2">
-                <Checkbox
-                  id={`${color}-mobile`}
-                  checked={selectedColors.includes(color)}
-                  onCheckedChange={(checked) =>
-                    setSelectedColors((prev) =>
-                      checked
-                        ? [...prev, color]
-                        : prev.filter((c) => c !== color)
-                    )
-                  }
-                />
-                <label htmlFor={`${color}-mobile`}>{color}</label>
-              </div>
-            ))}
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* Storage Filter */}
-        <AccordionItem value="storage">
-          <AccordionTrigger>Storage</AccordionTrigger>
-          <AccordionContent className="space-y-2">
-            {["64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "1TB"].map(
-              (storage) => (
-                <div key={storage} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`${storage}-mobile`}
-                    checked={selectedStorages.includes(storage)}
-                    onCheckedChange={(checked) => {
-                      setSelectedStorages((prev) =>
-                        checked
-                          ? [...prev, storage]
-                          : prev.filter((s) => s !== storage)
-                      );
-                    }}
-                  />
-                  <label htmlFor={`${storage}-mobile`}>{storage}</label>
-                </div>
-              )
-            )}
-          </AccordionContent>
-        </AccordionItem>
-
         {/* Condition Filter */}
         <AccordionItem value="condition">
           <AccordionTrigger>Condition</AccordionTrigger>
@@ -317,6 +239,37 @@ const CatalogPage = () => {
       </Accordion>
     </div>
   );
+
+// Replace the existing renderPagination function with this
+const renderPagination = () => {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex justify-center mt-8 gap-2">
+    <Button
+      variant="outline"
+      size="lg"
+      className="w-[100px]"
+      disabled={currentPage === 1 || loading}
+      onClick={() => setCurrentPage(currentPage - 1)}
+    >
+      Previous
+    </Button>
+    <span className="flex items-center px-3">
+      Page {currentPage} of {totalPages}
+    </span>
+    <Button
+      variant="outline"
+      size="lg"
+      className="w-[100px]"
+      disabled={currentPage === totalPages || loading}
+      onClick={() => setCurrentPage(currentPage + 1)}
+    >
+      Next
+    </Button>
+  </div>
+  );
+};
 
   return (
     <>
@@ -361,7 +314,7 @@ const CatalogPage = () => {
 
                 {/* Sort Dropdown */}
                 <div className={isSmallScreen ? "w-full" : "w-48"}>
-                  <Select>
+                  <Select value={sortOrder} onValueChange={handleSortChange}>
                     <SelectTrigger className="w-full">
                       <SortDesc className="mr-2 h-4 w-4" />
                       <SelectValue placeholder="Sort by" />
@@ -373,7 +326,6 @@ const CatalogPage = () => {
                       <SelectItem value="price-desc">
                         Price: High to Low
                       </SelectItem>
-                      <SelectItem value="newest">Newest First</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -461,27 +413,61 @@ const CatalogPage = () => {
                       {condition} ×
                     </Button>
                   ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearAllFilters}
+                    className="text-xs"
+                  >
+                    Clear All
+                  </Button>
                 </div>
               )}
             </div>
 
+            {/* Loading state */}
+            {loading && (
+              <div className="flex justify-center items-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+                <span className="ml-2 text-gray-500">Loading products...</span>
+              </div>
+            )}
+
+            {/* Error state */}
+            {error && !loading && (
+              <div className="text-center py-10">
+                <h3 className="text-lg font-medium text-red-600">{error}</h3>
+                <Button
+                  onClick={fetchProducts}
+                  variant="outline"
+                  className="mt-4"
+                >
+                  Try Again
+                </Button>
+              </div>
+            )}
+
             {/* Product Count */}
-            <div className="mb-4 text-sm text-gray-500">
-              Showing {filteredProducts.length} products
-              {searchQuery && <span> for "{searchQuery}"</span>}
-            </div>
+            {!loading && !error && (
+              <div className="mb-4 text-sm text-gray-500">
+                Showing {products.length} of {totalProducts} products
+                {searchQuery && <span> for "{searchQuery}"</span>}
+              </div>
+            )}
 
             {/* Product Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-              {filteredProducts.map((product) => (
-                <div key={product.id} className="flex justify-center">
-                  <ProductCardGrid {...product} />
-                </div>
-              ))}
-            </div>
+            {!loading && !error && products.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                {products.map((product) => (
+                  <div key={product._id} className="flex justify-center">
+                    <ProductCardGrid product={product} />
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* No Results */}
-            {filteredProducts.length === 0 && (
+            {!loading && !error && totalProducts === 0 && (
               <div className="text-center py-10">
                 <h3 className="text-lg font-medium">
                   No products match your criteria
@@ -492,14 +478,7 @@ const CatalogPage = () => {
                     : "Try adjusting your filter criteria"}
                 </p>
                 <Button
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSelectedProductTypes([]);
-                    setSelectedColors([]);
-                    setSelectedStorages([]);
-                    setSelectedConditions([]);
-                    setPriceRange([100000]);
-                  }}
+                  onClick={clearAllFilters}
                   variant="outline"
                   className="mt-4"
                 >
@@ -507,6 +486,9 @@ const CatalogPage = () => {
                 </Button>
               </div>
             )}
+
+            {/* Pagination controls */}
+            {!loading && !error && products.length > 0 && renderPagination()}
           </div>
         </div>
       </div>

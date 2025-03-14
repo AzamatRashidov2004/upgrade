@@ -1,67 +1,83 @@
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Product } from "@/api/serverCalls";
 
-interface ProductCardProps {
-  name?: string;
-  color?: string;
-  storage?: string;
-  condition?: string;
-  price?: string;
-  colorHex?: string;
-  image?: string;
+interface T {
+  product: Product;
 }
 
-const ProductCard = ({
-  name = "iPhone 14 Pro",
-  color = "Space Black",
-  storage = "128 GB",
-  condition = "Fair",
-  price = "14 490 Kč",
-  colorHex = "#000000",
-  image = "https://cdn.myshoptet.com/usr/www.jabkolevne.cz/user/shop/big/14830_iphone-14-128gb--stav-a--modra.jpg?6505d8dc",
-}: ProductCardProps) => {
+const ProductCard = ({ product }: T) => {
+  const [fontSize, setFontSize] = useState("1.125rem");
+  const modelRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (modelRef.current) {
+      const computedStyle = window.getComputedStyle(modelRef.current);
+      const lineHeight = parseFloat(computedStyle.lineHeight);
+      const currentHeight = modelRef.current.clientHeight;
+      if (currentHeight > lineHeight * 2.5) {
+        setFontSize("0.8rem");
+      } else if (currentHeight > lineHeight * 2) {
+        setFontSize("0.90rem");
+      }else if (currentHeight > lineHeight * 1.5) {
+        setFontSize("1rem");
+      }
+       else {
+        setFontSize("1.125rem");
+      }
+    }
+  }, [product.model]);
+
+  const handleClick = () => {
+    // Navigate to the product detail page; adjust the URL as needed.
+    window.location.href = `/product/${product._id}`;
+  };
+
   return (
     <Card
-      className="w-full bg-white rounded-3xl p-6
-      sm:w-30 md:w-50 lg:w-50 xl:w-64"
+      onClick={handleClick}
+      className="cursor-pointer w-full bg-white rounded-3xl p-6 h-[400px]
+      sm:w-30 md:w-50 lg:w-50 xl:w-64 transition transform duration-300 hover:-translate-y-0.5 hover:shadow-lg"
     >
       <CardContent className="p-0">
         {/* Product Image Container */}
         <div className="relative flex flex-col items-center mb-6">
           <div className="w-full h-32 flex items-center justify-center mb-4">
             <img
-              src={image}
-              alt="iPhone 14 Pro"
+              src={product.image}
+              alt="product card"
               className="w-full h-full object-contain rounded-3xl"
             />
           </div>
           <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-full"
-              style={{ backgroundColor: colorHex }}
-            />
-            <span className="text-gray-600">{color}</span>
+            <span className="text-gray-600">{product.color}</span>
           </div>
         </div>
         {/* Product Details */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-baseline gap-1">
-              <span className="text-lg font-semibold">{name}</span>
+              <span ref={modelRef} style={{ fontSize }} className="font-semibold">
+                {product.model}
+              </span>
             </div>
             <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
-              {storage}
+              {product.device_type === "iPad"
+                ? product.storage
+                : product.storage + "GB"}
             </div>
           </div>
           <div className="space-y-4">
             <div className="h-px bg-gray-200" />
             <div className="flex items-center">
               <span className="text-gray-500">Condition:</span>
-              <span className="font-medium ml-1">{condition}</span>
+              <span className="font-medium ml-1">{product.condition}</span>
             </div>
             <div className="h-px bg-gray-200" />
           </div>
-          <div className="text-blue-700 text-xl font-bold">{price}</div>
+          <div className="flex align-self-center text-blue-700 text-xl font-bold">
+            {product.price}
+          </div>
         </div>
       </CardContent>
     </Card>

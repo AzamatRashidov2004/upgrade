@@ -2,8 +2,29 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination } from "swiper/modules";
 import "swiper/swiper-bundle.css";
 import ProductCard from "./ProductCard";
+import { Product, productApi } from "@/api/serverCalls";
+import { useEffect, useState } from "react";
+
 
 export const ProductSwiper = () => {
+  const [products, setProducts] = useState<Product[]>();
+  useEffect(() => {
+    async function fetchProducts(): Promise<boolean> {
+      const result = await productApi.getUniqueModels();
+      if (result === undefined) {
+        return false;
+      }
+      setProducts(result);
+      return true;
+    };
+    fetchProducts();
+  },[]);
+  // Shuffle the data array and take 20 random products
+  let randomProducts: Product[] = [];
+  if (products !== undefined)
+    randomProducts = [...products].sort(() => 0.5 - Math.random()).slice(0, 20);
+
+
   return (
     <Swiper
       modules={[Navigation, Pagination]}
@@ -19,9 +40,9 @@ export const ProductSwiper = () => {
       }}
       className="relative w-full"
     >
-      {Array.from({ length: 12 }).map((_, index) => (
-        <SwiperSlide key={index}>
-          <ProductCard />
+      {randomProducts.length > 0 && randomProducts.map((product) => (
+        <SwiperSlide key={product._id}>
+          <ProductCard product={product} />
         </SwiperSlide>
       ))}
     </Swiper>
