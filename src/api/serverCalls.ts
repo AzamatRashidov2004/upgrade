@@ -106,6 +106,7 @@ export interface ConfigOptionsType {
   storage: (string | number)[],
   color: string[],
   condition: string[],
+  battery: string[];
   price: { min: number, max: number },
   ram?: number[],
   cpu?: string[];
@@ -118,6 +119,23 @@ export interface ProductByIdResponse {
     product: Product,
     configOptions: ConfigOptionsType,
   }
+}
+
+export interface Combination {
+  storage: number | string;
+  color: string;
+  condition: string;
+  battery: string;
+  // Optional fields for device-specific options:
+  ram?: number;
+  cpu?: string;
+  connectivity?: string;
+}
+
+export interface ConfigCombinationsResponse {
+  success: boolean,
+  count: number,
+  data: Combination[],
 }
 
 
@@ -139,6 +157,14 @@ export const productApi = {
     const data = await response.json();
     return data;
   },
+
+  async getValidCombinations(model: string, deviceType: 'iPhone' | 'MacBook' | 'iPad'): Promise<ConfigCombinationsResponse> {
+    const response = await fetch(
+      `${API_BASE}/products/valid-combinations?model=${encodeURIComponent(model)}&device_type=${deviceType}`);
+    const data = await response.json();
+    return data;
+  },
+  
 
   async getConfigOptions(model: string, deviceType: 'iPhone' | 'MacBook' | 'iPad'): Promise<ConfigOptions> {
     const response = await fetch(

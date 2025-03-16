@@ -3,35 +3,45 @@ import ImageCarousel from "./components/ImageCarousel";
 import { ProductConfigurator } from "./components/ProductConfigurator";
 import { ProductSwiper } from "./components/ProductSwiper";
 import StickyProductHeader from "./components/StickyProductHeader";
-import { Product } from "@/api/serverCalls";
+import { Combination, Product } from "@/api/serverCalls";
 import { useParams } from "react-router-dom";
-import { productApi, ConfigOptionsType } from "@/api/serverCalls";
+import { productApi } from "@/api/serverCalls";
 
 export const ProductPage = () => {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product>();
-  const [configurations, setConfigurations] = useState<ConfigOptionsType>();
+
+  const [validCombinations, setValidCombinations] = useState<Combination[]>([]);
+  const [image, setImage] = useState<string|undefined>(undefined);
 
   useEffect(() => {
     async function fetchData() {
       const result = await productApi.getProductById(id ? id : "");
-      console.log("XX", result);
       setProduct(result.data.product);
-      setConfigurations(result.data.configOptions);
+      setImage(result.data.product.image);
+      const comb = await productApi.getValidCombinations(result.data.product.model, result.data.product.device_type);
+      setValidCombinations(comb.data);
+      console.log("THE PRODUCT: ", result.data.product);
+      console.log("THE COMBINATIONS: ", comb.data);
     };
     fetchData();
-  },[]);
+  },[id]);
+
+  useEffect(() => {
+    console.log("IMAGE : ", image);
+  }, [image]);
+  
 
   return (
     <>
-      {/*<StickyProductHeader product={product} />*/}
+      <StickyProductHeader product={product} />
       <div className="flex flex-col w-full">
         <div className="flex flex-col md:flex-row w-full bg-gray-200 mt-20">
           <div className="w-full md:w-1/2 h-[800px] bg-white border-2 text-white flex items-center justify-center p-4 border-b-0">
-            <ImageCarousel images={[product?.image ? product?.image : ""]} />
+            <ImageCarousel images={[image ? image : ""]} />
           </div>
           <div className="w-full md:w-1/2 h-[800px] flex items-center justify-center">
-            <ProductConfigurator product={product} config={configurations} />
+            <ProductConfigurator validCombinations={validCombinations}/>
           </div>
         </div>
         <div className="w-full mt-[100px] p-[20px]">
