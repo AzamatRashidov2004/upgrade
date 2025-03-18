@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Product } from "@/api/serverCalls";
+import { useNavigate } from "react-router-dom";
 
 interface T {
   product: Product;
@@ -9,6 +10,8 @@ interface T {
 const ProductCard = ({ product }: T) => {
   const [fontSize, setFontSize] = useState("1.125rem");
   const modelRef = useRef<HTMLSpanElement>(null);
+
+  //const navigate = useNavigate();
 
   useEffect(() => {
     if (modelRef.current) {
@@ -30,7 +33,8 @@ const ProductCard = ({ product }: T) => {
 
   const handleClick = () => {
     // Navigate to the product detail page; adjust the URL as needed.
-    window.location.href = `/product/${product._id}`;
+    //navigate(`/product/${product._id}`);
+    window.open(`/product/${product._id}`,'_self');
   };
 
   return (

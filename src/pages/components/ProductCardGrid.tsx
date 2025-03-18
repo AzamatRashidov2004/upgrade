@@ -2,12 +2,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Product } from "@/api/serverCalls";
+import { useNavigate } from "react-router-dom";
 
 interface ProductCardProps {
   product: Product;
 }
 
 const ProductCardGrid = ({ product }: ProductCardProps) => {
+  const navigate = useNavigate();
   const getConditionColor = (condition: string) => {
     switch (condition.toLowerCase()) {
       case "premium":
@@ -28,7 +30,7 @@ const ProductCardGrid = ({ product }: ProductCardProps) => {
   // When the card is clicked, navigate to a target page
   const handleCardClick = () => {
     // console.log("AAA", product);
-    window.location.href = `/product/${product._id}`; 
+    navigate(`/product/${product._id}`); 
   };
 
   // Prevent the card's onClick from triggering when clicking "Add to Cart"

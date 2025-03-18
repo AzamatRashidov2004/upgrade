@@ -141,7 +141,7 @@ export interface ConfigCombinationsResponse {
 
 
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'http://0.0.0.0:5000/api';
 
 // Product API Calls
 export const productApi = {
